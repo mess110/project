@@ -15,6 +15,7 @@ nm.on 'gameTick', (data) ->
   gameScene.gameTick(data)
 
 nm.on 'self', (data) ->
+  console.log "I am #{data.id}"
   gameScene.key = data.id
 
 engine = new Engine3D()

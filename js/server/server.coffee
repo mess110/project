@@ -35,7 +35,6 @@ class GameServer
 
     for key of game
       pod.socket(key).emit('gameTick', game: game, inputs: inputs, meta: meta)
-
     inputs.clear()
 
     meta.time += GameServer::TICK
@@ -54,6 +53,7 @@ class GameServer
     @game[socket.id] = data
     pod.broadcast('join', data)
     for key in pod.keys()
+      pod.socket(key).emit('join', data)
       if key != socket.id
         socket.emit('join', @game[key])
 
