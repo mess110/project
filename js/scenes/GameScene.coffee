@@ -1,9 +1,7 @@
 class GameScene extends BaseScene
-  inputId: 0
   game: {}
-  players: []
+  playerMeshes: {}
   inputs: []
-  queue: [] # for enemey inputs
 
   init: ->
     @key = nm.getSessionId()
@@ -15,7 +13,7 @@ class GameScene extends BaseScene
 
   gameTick: (data) ->
     @game = data.game
-    player = @getPlayer(@key)
+    player = @playerMeshes[@key]
     if player?
       player.mesh.position.x = data.game[@key].position.x
       @discardAcknowledgedInputs(data.game[@key].lastAckInputId)
@@ -27,24 +25,18 @@ class GameScene extends BaseScene
     player.id = data.id
     @scene.add player.mesh
     @scene.add player.ghost
-    @players.push player
+    @playerMeshes[player.id] = player
     player.mesh.position.x = @game[player.id].position.x
 
   disconnect: (data) ->
-    player = @getPlayer(data.id)
+    player = @playerMeshes[data.id]
     if player?
       @scene.remove player.mesh
       @scene.remove player.ghost
-      @players.remove player
-
-  getPlayer: (key) ->
-    for player in @players
-      if key == player.id
-        return player
+      delete @playerMeshes[player.id]
 
   tick: (tpf) ->
     hash =
-      inputId: @inputId
       type: 'move'
       tpf: tpf
       direction:
@@ -58,15 +50,14 @@ class GameScene extends BaseScene
     nm.emit(hash)
     @inputs.push hash
 
-    for player in @players
+    for key of @playerMeshes
+      player = @playerMeshes[key]
       player.ghost.position.x = @game[player.id].position.x
 
       if player.id == @key
         player.move(hash)
       else
         player.interpolate(tpf)
-
-    @inputId += 1
 
   doMouseEvent: (event, raycaster) ->
 
