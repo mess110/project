@@ -2,49 +2,29 @@
 
 server = require('../../../../../src/server/server.coffee') # for dev
 # server = require('../../bower_components/coffee-engine/src/server/server.coffee')
-common = require('../common.coffee').common
+Game = require('./Game.coffee').Game
 
 config =
   pod:
-    guid: server.Utils.guid()
+    id: server.Utils.guid()
     dirname: __dirname
     version: 1
     port: 1337
   gameServer:
-    ticksPerSecond: 5
+    ticksPerSecond: 50
     ioMethods: ['join', 'move']
 
 class GameServer extends server.GameServer
-  game: {}
-  inputs: []
-
-  gameTick: =>
-    for input in @inputs
-      continue unless @game[input.id]?
-      common.move(@game[input.id], input)
-      @game[input.id].lastAckInputId = input.inputId
-    @inputs.clear()
-
-    for key of @game
-      pod.socket(key).emit('gameTick', game: @game)
+  game: new Game(config.gameServer)
 
   move: (socket, data) ->
-    data.id = socket.id
-    @inputs.push data
+    @game.move(socket, data)
 
   join: (socket, data) ->
-    data.id = socket.id
-    data.position = { x: 0 }
-    @game[socket.id] = data
-
-    for key in pod.keys()
-      pod.socket(key).emit('join', data)
-      if key != socket.id
-        socket.emit('join', @game[key])
+    @game.join(socket, data)
 
   disconnect: (socket) ->
-    delete @game[socket.id]
-    pod.broadcast('disconnect', id: socket.id)
+    @game.disconnect(socket)
 
 gameServer = new GameServer(config.gameServer)
 pod = new server.Pod(config.pod, gameServer)

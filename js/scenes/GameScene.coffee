@@ -6,8 +6,8 @@ class GameScene extends BaseScene
   queue: [] # for enemey inputs
 
   init: ->
+    @key = nm.getSessionId()
     @scene.add Helper.ambientLight()
-
     nm.emit(type: 'join', name: 'kiki')
 
   discardAcknowledgedInputs: (lastAckInputId) ->
