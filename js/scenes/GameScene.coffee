@@ -1,10 +1,3 @@
-class Fighter extends BaseModel
-  constructor: ->
-    @mesh = Helper.cube()
-    @ghost = Helper.cube()
-    @ghost.material.wireframe = true
-    @ghost.position.y += 1
-
 class GameScene extends BaseScene
   inputId: 0
   game: {}
@@ -17,39 +10,37 @@ class GameScene extends BaseScene
 
     nm.emit(type: 'join', name: 'kiki')
 
-  gameTick: (data) ->
-    for key of data.game
-      cube = @getCube(key)
-      if cube?
-        if key == @key
-          cube.mesh.position.x = data.game[key].position.x
-          # reconcile the player position with unacknowledged inputs
-          @inputs = (input for input in @inputs when input.inputId > data.game[key].lastAckInputId)
-          for input in @inputs
-            cube.mesh.position.x += input.direction.x * input.tpf
+  discardAcknowledgedInputs: (lastAckInputId) ->
+    @inputs = (input for input in @inputs when input.inputId > lastAckInputId)
 
+  gameTick: (data) ->
     @game = data.game
+    player = @getPlayer(@key)
+    if player?
+      player.mesh.position.x = data.game[@key].position.x
+      @discardAcknowledgedInputs(data.game[@key].lastAckInputId)
+      player.move(@inputs)
 
   join: (data) ->
     @game[data.id] = data
-    cube = new Fighter()
-    cube.id = data.id
-    @scene.add cube.mesh
-    @scene.add cube.ghost
-    @players.push cube
-    cube.mesh.position.x = @game[cube.id].position.x
+    player = new Player()
+    player.id = data.id
+    @scene.add player.mesh
+    @scene.add player.ghost
+    @players.push player
+    player.mesh.position.x = @game[player.id].position.x
 
   disconnect: (data) ->
-    cube = @getCube(data.id)
-    if cube?
-      @scene.remove cube.mesh
-      @scene.remove cube.ghost
-      @players.remove cube
+    player = @getPlayer(data.id)
+    if player?
+      @scene.remove player.mesh
+      @scene.remove player.ghost
+      @players.remove player
 
-  getCube: (key) ->
-    for cube in @players
-      if key == cube.id
-        return cube
+  getPlayer: (key) ->
+    for player in @players
+      if key == player.id
+        return player
 
   tick: (tpf) ->
     hash =
@@ -67,18 +58,13 @@ class GameScene extends BaseScene
     nm.emit(hash)
     @inputs.push hash
 
-    for cube in @players
-      if cube.ghost?
-        cube.ghost.position.x = @game[cube.id].position.x
+    for player in @players
+      player.ghost.position.x = @game[player.id].position.x
 
-      if cube.id == @key
-        cube.mesh.position.x += hash.direction.x * tpf
+      if player.id == @key
+        player.move(hash)
       else
-        # TODO: find a nice way to interpolate
-        if cube.mesh.position.x < cube.ghost.position.x
-          cube.mesh.position.x += 5 * tpf
-        if cube.mesh.position.x > cube.ghost.position.x
-          cube.mesh.position.x -= 5 * tpf
+        player.interpolate(tpf)
 
     @inputId += 1
 

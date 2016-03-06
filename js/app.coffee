@@ -14,7 +14,7 @@ nm.on 'disconnect', (data) ->
 nm.on 'gameTick', (data) ->
   gameScene.gameTick(data)
 
-nm.on 'self', (data) ->
+nm.on 'connection', (data) ->
   console.log "I am #{data.id}"
   gameScene.key = data.id
 
